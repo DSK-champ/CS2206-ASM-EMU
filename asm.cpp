@@ -173,11 +173,11 @@ int rewrite_label(string label, vector<string> words)
     label.pop_back();
     string new_string;
 
-    if(words.size() == 2)
+    if (words.size() == 2)
         new_string = convert_no_to_hex(words[1]);
-    if(words.size() > 2)
+    if (words.size() > 2)
         return -6;
-    if(words.size() > 2)
+    if (words.size() > 2)
         return -9;
     Label_Table[label] = new_string;
     return 0;
@@ -273,7 +273,7 @@ pair<int, string> convert_immedt(const instruction *inst, vector<string> words, 
     return {0, "000000"};
 }
 
-pair<int, string> decode_instruction(vector<string> words, string line_no,int l)
+pair<int, string> decode_instruction(vector<string> words, string line_no, int l)
 {
     int e = 0;
     string code = "        ";
@@ -287,12 +287,12 @@ pair<int, string> decode_instruction(vector<string> words, string line_no,int l)
 
     if (l == 1 && inst->op == 254)
     {
-        if(words.size() == 2)
-            return { 0, convert_no_to_hex(words[1])};
-        if(words.size() > 2)
-            return {-6,"_ERROR__"};
-        if(words.size() < 2)
-            return {-9,"_ERROR__"};
+        if (words.size() == 2)
+            return {0, convert_no_to_hex(words[1])};
+        if (words.size() > 2)
+            return {-6, "_ERROR__"};
+        if (words.size() < 2)
+            return {-9, "_ERROR__"};
     }
 
     string opcode = convert_opcode(inst->op);
@@ -301,10 +301,10 @@ pair<int, string> decode_instruction(vector<string> words, string line_no,int l)
     if (inst->pseudo)
         code = convert_no_to_hex(words[1]);
 
-    if(l == 0 && inst->op == 255)
+    if (l == 0 && inst->op == 255)
         return {-11, code};
-    if(l == 1 && inst->op == 255)
-        return {0,code};
+    if (l == 1 && inst->op == 255)
+        return {0, code};
 
     code[0] = immediate.second[0];
     code[1] = immediate.second[1];
@@ -317,18 +317,13 @@ pair<int, string> decode_instruction(vector<string> words, string line_no,int l)
 
     e = immediate.first;
 
-    
-
-    
     return {e, code};
 }
 
 void print_to_file(meta_data DATA, ofstream &out, int mode)
 {
-    if (mode == 1)
-        out << DATA.machine_code << "\n";;
     if (mode == 2)
-        out << DATA.address << "   " << DATA.machine_code << "   " << left << setw(20) << DATA.assembly_code << "\n";;
+        out << DATA.address << "   " << DATA.machine_code << "   " << left << setw(20) << DATA.assembly_code << "\n";
 
     if (mode == 3)
     {
@@ -367,7 +362,7 @@ void print_to_file(meta_data DATA, ofstream &out, int mode)
             out << ">> ERROR   : Specify the label to SET value to\n";
             break;
         case -11:
-            if(DATA.label != 1)
+            if (DATA.label != 1)
                 out << ">> WARNING : Unlabeled memory allocation data cannot be accessed via symbol\n";
             else
                 out << "\n";
@@ -378,16 +373,43 @@ void print_to_file(meta_data DATA, ofstream &out, int mode)
     }
 }
 
+bool hex_checker(const string &s)
+{
+    if (s.size() != 8)
+        return false;
+
+    for (char c : s)
+        if (!isxdigit(c))
+            return false;
+
+    return true;
+}
+
 void write_obj_file(string filename, vector<meta_data> DATA)
 {
     size_t pos = filename.rfind('.');
     if (pos != string::npos)
         filename.replace(pos, string::npos, ".obj");
 
-    ofstream file(filename);
+    ofstream file(filename, ios::binary);
 
     for (const auto &line : DATA)
-        print_to_file(line, file, 1);
+    {
+        string hex = line.machine_code;
+
+        if (!hex_checker(hex))
+            continue;
+
+        char b1 = (char)stoi(hex.substr(6, 2), nullptr, 16); // LSB
+        char b2 = (char)stoi(hex.substr(4, 2), nullptr, 16);
+        char b3 = (char)stoi(hex.substr(2, 2), nullptr, 16);
+        char b4 = (char)stoi(hex.substr(0, 2), nullptr, 16); // MSB
+
+        file.put(b1);
+        file.put(b2);
+        file.put(b3);
+        file.put(b4);
+    }
 
     file.close();
 
@@ -480,14 +502,13 @@ int main()
 
                 if (line[pos - 1] == ' ')
                     label = 0;
-                
+
                 else
                 {
                     word = line.substr(0, pos + 1);
                     words = break_parts(line.substr(pos + 1)); // Break the line into words
                     no_words = words.size();
 
-                   
                     error = is_a_label(Label_Table, word, print_no); // check if it is a valid Label
                     if (no_words == 0 && error > 0)
                         error = -4; // checking if its an empty label
@@ -495,7 +516,7 @@ int main()
             }
 
             DATA.push_back({print_no, "", assembly, label, error});
-           
+
             i++;
 
             if (error == -4)
@@ -547,7 +568,7 @@ int main()
 
             DATA[i].error = result.first;
             DATA[i].machine_code = result.second;
-            
+
             if (DATA[i].error != -4 && DATA[i].error >= -10 && DATA[i].error <= -1)
                 e_count++;
             i++;
