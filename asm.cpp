@@ -287,8 +287,6 @@ pair<int, string> decode_instruction(vector<string> words, string line_no, int l
 
     if (l == 1 && inst->op == 254)
     {
-        if (words.size() == 2)
-            return {0, convert_no_to_hex(words[1])};
         if (words.size() > 2)
             return {-6, "_ERROR__"};
         if (words.size() < 2)
@@ -297,14 +295,6 @@ pair<int, string> decode_instruction(vector<string> words, string line_no, int l
 
     string opcode = convert_opcode(inst->op);
     auto immediate = convert_immedt(inst, words, line_no);
-
-    if (inst->pseudo)
-        code = convert_no_to_hex(words[1]);
-
-    if (l == 0 && inst->op == 255)
-        return {-11, code};
-    if (l == 1 && inst->op == 255)
-        return {0, code};
 
     code[0] = immediate.second[0];
     code[1] = immediate.second[1];
@@ -315,19 +305,40 @@ pair<int, string> decode_instruction(vector<string> words, string line_no, int l
     code[6] = opcode[0];
     code[7] = opcode[1];
 
-    e = immediate.first;
+    if (opcode == "FF" && l == 0)
+        e = -11;
+    if (opcode == "FF" && l == 1)
+        e = 8;
+    if (opcode == "FE")
+        e = 9;
+    if (opcode != "FF" && opcode != "FE")
+        e = immediate.first;
 
     return {e, code};
+}
+
+string print_machine(string s)
+{
+    string new_s = "00" + s.substr(0,6);
+    return new_s;
 }
 
 void print_to_file(meta_data DATA, ofstream &out, int mode)
 {
     if (mode == 2)
-        out << DATA.address << "   " << DATA.machine_code << "   " << left << setw(20) << DATA.assembly_code << "\n";
+    {
+        if(DATA.error == 9 || DATA.error == 8 || DATA.error == -11)
+            out << "  " << DATA.address << "   " << print_machine(DATA.machine_code) << "   " << left << setw(20) << DATA.assembly_code << "\n";
+        else
+            out << "  " << DATA.address << "   " << DATA.machine_code << "   " << left << setw(20) << DATA.assembly_code << "\n";
+    }
 
     if (mode == 3)
     {
-        out << "  " << DATA.address << "   " << DATA.machine_code << "   " << left << setw(20) << DATA.assembly_code;
+        if(DATA.error == 9 || DATA.error == 8 || DATA.error == -11)
+            out << "  " << DATA.address << "   " << print_machine(DATA.machine_code) << "   " << left << setw(20) << DATA.assembly_code;
+        else
+            out << "  " << DATA.address << "   " << DATA.machine_code << "   " << left << setw(20) << DATA.assembly_code;
 
         switch (DATA.error)
         {
