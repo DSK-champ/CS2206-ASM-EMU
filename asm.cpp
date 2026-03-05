@@ -459,11 +459,15 @@ void write_log_file(string filename, vector<meta_data> DATA)
     cout << "Log file       : " << filename << endl;
 }
 
-int main()
+int main(int c, char* args[]) 
 {
-    string filename;
-    cout << "Enter file name : ";
-    cin >> filename;
+    if (c < 2) 
+    {
+        cerr << "Usage: " << args[0] << " <filename>\n";
+        return 1;
+    }
+
+    string filename = args[1];
 
     ifstream file(filename);
 
