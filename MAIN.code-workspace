@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../Own Project"
+		},
+		{
+			"path": "../../../../../CODEFORCES"
+		},
+		{
+			"path": "../../../../../FUEL/predictive-fuel-analytics-main"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "predictive-fuel-analytics-main"
+	}
+}

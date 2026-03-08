@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstdint>
 #include <string>
+#include <sstream>
 using namespace std;
 
 vector<char> memory;
@@ -14,8 +15,9 @@ uint32_t B  = 0;
 uint32_t PC = 0;
 uint32_t SP = 0;
 
-ofstream working_file; 
-ofstream result_file;   
+ofstream working_file;
+ofstream result_file;
+ofstream bfrafr_file;
 
 struct instruction
 {
@@ -51,11 +53,17 @@ static const instruction ins_type[] = {
     {nullptr,  0,   false, false, false}
 };
 
+void write_to_files(const string &text)
+{
+    cout         << text;
+    working_file << text;
+}
+
 uint32_t get_word(uint32_t addr)
 {
     if (addr * 4 + 3 >= (uint32_t)memory.size())
     {
-        cerr << "Memory read out of bounds at word address " << hex << addr << "\n";
+        cout << "Memory read out of bounds at word address " << hex << addr << "\n";
         exit(1);
     }
     uint32_t val = 0;
@@ -74,13 +82,13 @@ void set_word(uint32_t addr, uint32_t val)
 {
     if (addr * 4 + 3 >= (uint32_t)memory.size())
     {
-        cerr << "Memory write out of bounds at word address " << hex << addr << "\n";
+        cout << "Memory write out of bounds at word address " << hex << addr << "\n";
         exit(1);
     }
     memcpy(&memory[addr * 4], &val, 4);
 }
 
-void print_decoded(uint32_t instr)
+string get_decoded(uint32_t instr)
 {
     uint8_t opcode  = (instr >> 0) & 0xFF;
     int32_t operand = (instr >> 8) & 0x00FFFFFF;
@@ -98,13 +106,10 @@ void print_decoded(uint32_t instr)
                 out += " ";
                 out += to_string(operand);
             }
-            out += "\n";
-            cout        << out;
-            working_file << out;
-            return;
+            return out;
         }
     }
-    cerr << "Unknown opcode: " << hex << (int)opcode << "\n";
+    return "unknown(" + to_string((int)(instr & 0xFF)) + ")";
 }
 
 uint32_t instr_count = 0;
@@ -114,7 +119,7 @@ void load_program(const char *filename)
     ifstream file(filename, ios::binary | ios::ate);
     if (!file)
     {
-        cerr << "Error: cannot open file '" << filename << "'\n";
+        cout << "Error: cannot open file '" << filename << "'\n";
         exit(1);
     }
 
@@ -125,7 +130,7 @@ void load_program(const char *filename)
 
     if (!file.read(memory.data(), size))
     {
-        cerr << "Error: failed to read file\n";
+        cout << "Error: failed to read file\n";
         exit(1);
     }
 
@@ -142,18 +147,26 @@ void setup_output_files(const string &input_name)
 
     string working_name = base_name + ".working";
     string result_name  = base_name + ".result";
+    string bfrafr_name  = base_name + ".bfrafr";
 
     working_file.open(working_name.c_str());
     if (!working_file)
     {
-        cerr << "Error: cannot open '" << working_name << "'\n";
+        cout << "Error: cannot open '" << working_name << "'\n";
         exit(1);
     }
 
     result_file.open(result_name.c_str());
     if (!result_file)
     {
-        cerr << "Error: cannot open '" << result_name << "'\n";
+        cout << "Error: cannot open '" << result_name << "'\n";
+        exit(1);
+    }
+
+    bfrafr_file.open(bfrafr_name.c_str());
+    if (!bfrafr_file)
+    {
+        cout << "Error: cannot open '" << bfrafr_name << "'\n";
         exit(1);
     }
 }
@@ -171,6 +184,68 @@ void write_result()
     }
     working_file.close();
     result_file.close();
+    bfrafr_file.close();
+}
+
+string build_row(uint32_t count, uint32_t instr, const string &as_str,
+                 uint32_t instr_pc, uint32_t a, uint32_t b, uint32_t sp)
+{
+    ostringstream oss;
+    oss << setfill(' ')
+        << right << setw(6) << dec << count                    << " | "
+        << right << hex << setw(8) << setfill('0') << instr    << " | "
+        << setfill(' ') << left    << setw(14)     << as_str   << " | "
+        << right << hex << setw(8) << setfill('0') << instr_pc << " | "
+        << right << hex << setw(8) << setfill('0') << a        << " | "
+        << right << hex << setw(8) << setfill('0') << b        << " | "
+        << right << hex << setw(8) << setfill('0') << sp       << " |"
+        << "\n";
+    return oss.str();
+}
+
+string build_bfrafr_row(uint32_t bPC, uint32_t bA, uint32_t bB, uint32_t bSP,
+                        uint32_t count, uint32_t instr, const string &as_str,
+                        uint32_t aPC, uint32_t aA, uint32_t aB, uint32_t aSP)
+{
+    ostringstream oss;
+    oss << right << hex << setw(8) << setfill('0') << bPC   << " | "
+        << right << hex << setw(8) << setfill('0') << bA    << " | "
+        << right << hex << setw(8) << setfill('0') << bB    << " | "
+        << right << hex << setw(8) << setfill('0') << bSP   << " || "
+        << right << setw(6) << dec << setfill(' ') << count << " | "
+        << right << hex << setw(8) << setfill('0') << instr << " | "
+        << setfill(' ') << left    << setw(14)     << as_str<< " || "
+        << right << hex << setw(8) << setfill('0') << aPC   << " | "
+        << right << hex << setw(8) << setfill('0') << aA    << " | "
+        << right << hex << setw(8) << setfill('0') << aB    << " | "
+        << right << hex << setw(8) << setfill('0') << aSP   << " |"
+        << "\n";
+    return oss.str();
+}
+
+void print_bfrafr_header()
+{
+    ostringstream oss;
+    oss << setfill(' ')
+        << "       ------- before -------        "
+        << "          --- instruction ---         "
+        << "       ------- after  -------\n"
+        << left  << setw(8)  << "PC"    << " | "
+        << left  << setw(8)  << "A"     << " | "
+        << left  << setw(8)  << "B"     << " | "
+        << left  << setw(8)  << "SP"    << " || "
+        << right << setw(6)  << "N"     << " | "
+        << left  << setw(8)  << "IN"    << " | "
+        << left  << setw(14) << "AS"    << " || "
+        << left  << setw(8)  << "PC"    << " | "
+        << left  << setw(8)  << "A"     << " | "
+        << left  << setw(8)  << "B"     << " | "
+        << left  << setw(8)  << "SP"    << " |"
+        << "\n";
+    string sep(oss.str().size() / 2, '-');
+    sep += "\n";
+    bfrafr_file << oss.str();
+    bfrafr_file << sep;
 }
 
 void process_instr(uint32_t instr, uint32_t instr_pc)
@@ -181,18 +256,13 @@ void process_instr(uint32_t instr, uint32_t instr_pc)
     if (operand & 0x800000)
         operand |= 0xFF000000;
 
-    ostringstream oss;
-    oss << "PC: " << right << hex << setw(8) << setfill('0') << instr_pc  << "    "
-        << "IN: " << right << hex << setw(8) << setfill('0') << instr     << "    "
-        << "SP: " << right << hex << setw(8) << setfill('0') << SP        << "    "
-        << "A: "  << right << hex << setw(8) << setfill('0') << A         << "    "
-        << "B: "  << right << hex << setw(8) << setfill('0') << B         << "    "
-        << "#"    << dec   << (opcode ==18 ? instr_count : ++instr_count) << "    ";
+    uint32_t current_count = (opcode == 18 ? instr_count : ++instr_count);
+    string   as_str        = get_decoded(instr);
 
-    cout         << oss.str();
-    working_file << oss.str();
+    // snapshot registers before execution
+    uint32_t bPC = instr_pc, bA = A, bB = B, bSP = SP;
 
-    print_decoded(instr);
+    write_to_files(build_row(current_count, instr, as_str, instr_pc, A, B, SP));
 
     switch (opcode)
     {
@@ -281,8 +351,8 @@ void process_instr(uint32_t instr, uint32_t instr_pc)
     case 18: // HALT
     {
         string halt_msg = "\nHALT reached.\n";
-        cout         << halt_msg;
-        working_file << halt_msg;
+        write_to_files(halt_msg);
+        bfrafr_file << build_bfrafr_row(bPC, bA, bB, bSP, current_count, instr, as_str, PC, A, B, SP);
         write_result();
         exit(0);
         break;
@@ -293,18 +363,40 @@ void process_instr(uint32_t instr, uint32_t instr_pc)
         break;
 
     default:
-        cerr << "Unknown opcode: " << hex << (int)opcode << "\n";
+        cout << "Unknown opcode: " << hex << (int)opcode << "\n";
         exit(1);
     }
+
+    bfrafr_file << build_bfrafr_row(bPC, bA, bB, bSP, current_count, instr, as_str, PC, A, B, SP);
+}
+
+void print_table_header()
+{
+    ostringstream oss;
+    oss << setfill(' ')
+        << right << setw(6)  << "#"      << " | "
+        << left  << setw(8)  << "IN"     << " | "
+        << left  << setw(14) << "AS"     << " | "
+        << left  << setw(8)  << "PC"     << " | "
+        << left  << setw(8)  << "A"      << " | "
+        << left  << setw(8)  << "B"      << " | "
+        << left  << setw(8)  << "SP"     << " |"
+        << "\n";
+    string sep(oss.str().size() - 1, '-');
+    sep += "\n";
+    write_to_files(oss.str());
+    write_to_files(sep);
 }
 
 void start_execution()
 {
+    print_table_header();
+    print_bfrafr_header();
     while (true)
     {
         if (PC * 4 + 3 >= (uint32_t)memory.size())
         {
-            cerr << "PC out of bounds: " << hex << PC << "\n";
+            cout << "PC out of bounds: " << hex << PC << "\n";
             exit(1);
         }
 
@@ -320,14 +412,12 @@ int main(int c, char *args[])
 {
     if (c < 2)
     {
-        cerr << "Usage: " << args[0] << " <filename>\n";
+        cout << "Usage: " << args[0] << " <filename>\n";
         return 1;
     }
 
     setup_output_files(args[1]);
-
     load_program(args[1]);
-
     start_execution();
 
     return 0;
