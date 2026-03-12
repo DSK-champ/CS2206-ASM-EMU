@@ -1,150 +1,128 @@
-; ============================================================
-; bubblesort.asm  -  Bubble Sort in SIMPLEX Assembly Language
-; ============================================================
+; Bubble Sort in SIMPLEX assembly
+; Sorts arr[] of n integers ascending, in-place.
 ;
-; Sorts the array 'arr' (n elements) into ascending order.
+; SIMPLEX stnl semantics:  mem[A + offset] = B   (A = address, B = value)
+; SIMPLEX ldl  semantics:  B = A;  A = mem[SP+n]
 ;
-; SIMPLEX register summary:
-;   A   = accumulator (top of 2-reg internal stack)
-;   B   = second register (B is implicitly updated by ldc/ldl etc.)
-;   SP  = stack pointer
-;   PC  = program counter
+; Stack frame inside bsort (adj -3):
+;   SP+0 = return address
+;   SP+1 = i   (outer counter, n-1 down to 1)
+;   SP+2 = j   (inner counter, 0 up to i-1)
 ;
-; Stack frame for bsort (3 locals, adj -3):
-;   SP+0  = saved return address
-;   SP+1  = i  (outer-loop counter, n-1 down to 1)
-;   SP+2  = j  (inner-loop counter, 0 up to i-1)
-; ============================================================
+; During inner-loop body an extra slot is pushed (adj -1):
+;   SP+0 = temp  (= arr[j], saved for the swap)
+;   SP+1 = return address
+;   SP+2 = i
+;   SP+3 = j
 
-; -- Entry point -----------------------------------------------
-        ldc     0x1000          ; A := 4096 -- chosen stack base address
-        a2sp                    ; SP := A; A := B  -- initialise stack pointer
+        ldc     0x1000          ; init stack pointer
+        a2sp
+        ldc     n               ; address of n
+        ldnl    0               ; A = n
+        call    bsort
+        HALT
 
-        ldc     n               ; A := address of variable n
-        ldnl    0               ; A := mem[n]  -- load the count value (8)
-
-        call    bsort           ; call bsort; 'call' does:
-                                ;   B := A  (old A = count n)
-                                ;   A := PC (return address saved in A)
-                                ;   PC := PC + offset  (jump to bsort)
-        HALT                    ; stop emulator when sort returns
-
-; -- bsort: Bubble Sort subroutine ----------------------------
-; On entry (as set by 'call' instruction):
-;   A = return address
-;   B = n  (the count that was in A before the call)
 bsort:
-        adj     -3              ; allocate 3 local slots on the stack
-        stl     0               ; mem[SP+0] := A  -- save return address
-                                ;   stl shifts B->A, so now A = old B = n
-        ; Initialise i = n - 1  (total outer passes needed)
-        adc     -1              ; A := n - 1
-        stl     1               ; mem[SP+1] := i = n-1
+        adj     -3
+        stl     0               ; save return address  (A still = n from call)
+        adc     -1              ; A = n-1
+        stl     1               ; i = n-1
 
-; -- Outer loop: while i > 0 ----------------------------------
 outer:
-        ldl     1               ; A := i
-        brz     done            ; if i == 0, array is sorted -- exit
+        ldl     1               ; A = i
+        brz     done            ; i == 0 → finished
+        ldc     0
+        stl     2               ; j = 0
 
-        ; Reset inner counter j = 0 for each outer pass
-        ldc     0               ; A := 0
-        stl     2               ; mem[SP+2] := j = 0
-
-; -- Inner loop: while j < i ----------------------------------
 inner:
-        ; Compute i - j; if <= 0 the inner pass is complete
-        ldl     1               ; A := i
-        ldl     2               ; A := j,  B := i
-        sub                     ; A := B - A = i - j  (sub does A := B - A)
-        brz     nextOuter      ; i - j == 0  (j == i)  -- end inner loop
-        brlz    nextOuter      ; i - j <  0  (safety)  -- end inner loop
+        ldl     1               ; A = i
+        ldl     2               ; A = j, B = i  → sub gives i-j
+        sub                     ; A = i - j
+        brz     nextOuter       ; j == i → advance outer
+        brlz    nextOuter       ; j > i  → advance outer (guard)
 
-        ; -- Load arr[j] into temporary stack slot ------------
-        ldc     arr             ; A := base address of array
-        ldl     2               ; A := j,  B := arrBase
-        add                     ; A := arrBase + j  (address of arr[j])
-        ldnl    0               ; A := mem[arr+j]  =  arr[j]
+        ; ---- load arr[j], push as temp ----
+        ldc     arr
+        ldl     2               ; A = j
+        add                     ; A = arr+j
+        ldnl    0               ; A = arr[j]
+        adj     -1              ; push temp slot
+        stl     0               ; temp = arr[j]
+        ; frame now: SP+0=temp, SP+1=retaddr, SP+2=i, SP+3=j
 
-        adj     -1              ; push 1 extra temp slot  (becomes new SP+0)
-                                ;   existing locals shift: now SP+1,SP+2,SP+3
-        stl     0               ; mem[SP+0] := arr[j]  -- save for compare/swap
+        ; ---- load arr[j+1] ----
+        ldc     arr
+        ldl     3               ; A = j  (j is at SP+3 now)
+        adc     1               ; A = j+1
+        add                     ; A = arr+j+1
+        ldnl    0               ; A = arr[j+1]
 
-        ; -- Load arr[j+1] ------------------------------------
-        ldc     arr             ; A := arrBase
-        ldl     2               ; A := j  (now at SP+2 due to extra slot)
-        adc     1               ; A := j + 1
-        add                     ; A := arrBase + j + 1
-        ldnl    0               ; A := arr[j+1]
+        ; ---- compare: arr[j+1] - arr[j] ----
+        ldl     0               ; A = temp=arr[j],  B = arr[j+1]
+        sub                     ; A = arr[j+1] - arr[j]  (= B - A)
+        brlz    doSwap
+        br      noSwap
 
-        ; -- Compare: arr[j+1] - arr[j] -----------------------
-        ; sub computes A := B - A
-        ;   after ldnl: A = arr[j+1], B = arrBase+j+1 (trash)
-        ;   we reload arr[j] from temp to set up correctly
-        ldl     0               ; A := arr[j],  B := arr[j+1]
-        sub                     ; A := arr[j+1] - arr[j]
-                                ;   < 0  means arr[j+1] < arr[j]  -> swap
-                                ;   >= 0 means already in order   -> no swap
-        brlz    doSwap         ; branch if out of order (need to swap)
-        br      noSwap         ; otherwise skip swap
-
-; -- Swap arr[j] and arr[j+1] ---------------------------------
 doSwap:
-        ; Step 1: write old arr[j+1] into position arr[j]
-        ldc     arr             ; A := arrBase
-        ldl     2               ; A := j  (SP+2)
-        adc     1               ; A := j + 1
-        add                     ; A := address of arr[j+1]
-        ldnl    0               ; A := arr[j+1] value
-                                ;   B is now stale from ldc
+        ; --- write arr[j+1] into arr[j] ---
+        ; Need: A = arr+j (address),  B = arr[j+1] (value)
+        ; Technique: compute address, store in a 2nd temp, load value, then ldl temp2
+        ;            ldl temp2 does: B=old_A(=value), A=temp2(=address) → perfect for stnl
+        ;
+        adj     -1              ; push addr-temp slot  (SP+0)
+        ; frame: SP+0=addr_temp, SP+1=arr[j](temp), SP+2=retaddr, SP+3=i, SP+4=j
 
-        ldc     arr             ; A := arrBase,      B := arr[j+1]
-        ldl     2               ; A := j,             B := arr[j+1]
-        add                     ; A := arrBase + j,  B := arr[j+1]
-        stnl    0               ; mem[arr+j] := B  =  old arr[j+1]  (DONE step 1)
+        ldc     arr
+        ldl     4               ; A = j
+        add                     ; A = arr+j  (destination address for first stnl)
+        stl     0               ; addr_temp = arr+j
 
-        ; Step 2: write old arr[j] (saved at SP+0) into arr[j+1]
-        ldl     0               ; A := saved arr[j],  B = stale
-        ldc     arr             ; A := arrBase,      B := old arr[j]
-        ldl     2               ; A := j,             B := old arr[j]
-        adc     1               ; A := j + 1,         B := old arr[j]
-        add                     ; A := arrBase+j+1,  B := old arr[j]
-        stnl    0               ; mem[arr+j+1] := B  =  old arr[j]  (DONE step 2)
+        ldc     arr             ; A = arr_base
+        ldl     4               ; A = j
+        adc     1               ; A = j+1
+        add                     ; A = arr+j+1
+        ldnl    0               ; A = arr[j+1]  (value to write)
+        ldl     0               ; B = arr[j+1], A = arr+j  ← B=value, A=address ✓
+        stnl    0               ; mem[arr+j] = arr[j+1]  ✓
+
+        ; --- write old arr[j] (= SP+1 after adj) into arr[j+1] ---
+        ldc     arr
+        ldl     4               ; A = j
+        adc     1               ; A = j+1
+        add                     ; A = arr+j+1  (destination address)
+        stl     0               ; addr_temp = arr+j+1
+
+        ldl     1               ; A = arr[j] (old, from temp slot at SP+1),  B = arr[j+1]
+        ldl     0               ; B = arr[j],  A = arr+j+1  ← B=value, A=address ✓
+        stnl    0               ; mem[arr+j+1] = arr[j]  ✓
+
+        adj     1               ; pop addr_temp slot
 
 noSwap:
-        adj     1               ; pop temp slot; SP restored to bsort frame
+        adj     1               ; pop arr[j] temp slot
+        ldl     2               ; A = j
+        adc     1
+        stl     2               ; j++
+        br      inner
 
-        ; j := j + 1
-        ldl     2               ; A := j
-        adc     1               ; A := j + 1
-        stl     2               ; mem[SP+2] := j + 1
-
-        br      inner           ; repeat inner loop
-
-; -- Decrement i and repeat outer loop ------------------------
 nextOuter:
-        ldl     1               ; A := i
-        adc     -1              ; A := i - 1
-        stl     1               ; mem[SP+1] := i - 1
+        ldl     1               ; A = i
+        adc     -1
+        stl     1               ; i--
+        br      outer
 
-        br      outer           ; repeat outer loop
-
-; -- Return ---------------------------------------------------
 done:
-        ldl     0               ; A := saved return address
-        adj     3               ; free the 3 local slots
-        return                  ; PC := A  -- return to caller
+        ldl     0               ; restore return address into A
+        adj     3
+        return
 
-; -- Data section ---------------------------------------------
-n:      data    8               ; length of the array to sort
-
-; Unsorted input array (8 integers, sorted in-place)
-arr:    data    42              ; arr[0]  initial value 42
-        data    7               ; arr[1]  initial value  7
-        data    19              ; arr[2]  initial value 19
-        data    3               ; arr[3]  initial value  3
-        data    55              ; arr[4]  initial value 55
-        data    1               ; arr[5]  initial value  1
-        data    28              ; arr[6]  initial value 28
-        data    14              ; arr[7]  initial value 14
-
-result: data    0               ; placeholder (unused)
+n:      data    8
+arr:    data    42
+        data    7
+        data    19
+        data    3
+        data    55
+        data    1
+        data    28
+        data    14
+result: data    0
