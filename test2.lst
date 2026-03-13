@@ -1,0 +1,13 @@
+  00000000              label:              
+  00000000   _ERROR__   label:              
+  00000001   _ERROR11   br nonesuch         
+  00000002   _ERROR00   ldc 08ge            
+  00000003   _ERROR00   ldc                 
+  00000004   _ERROR06   add 5               
+  00000005   _ERROR00   ldc 5, 6            
+  00000006   _ERROR__   0def:               
+  00000007   _ERROR__   fibble              
+  00000008   _ERROR__   0def                
+  00000009   _ERROR__   label3: SET         
+  0000000A   _ERROR__   SET 50              
+  0000000B   00000043   data 67             

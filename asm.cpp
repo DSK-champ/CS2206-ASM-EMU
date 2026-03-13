@@ -194,12 +194,25 @@ string convert_opcode(int n)
     return hex;
 }
 
+// 24-bit valid range: accepts both signed [-8388608, 8388607]
+// and unsigned [0, 16777215] — anything that fits in 24 bits
+static const long MIN_24 = -8388608L;   // -2^23
+static const long MAX_24 =  16777215L;  //  2^24 - 1 (0xFFFFFF)
+
 pair<int, string> convert_value(string operand)
 {
     char *end;
     long value = strtol(operand.c_str(), &end, 0);
 
     int flag = (*end != '\0');
+
+    if (!flag)
+    {
+        if (value > MAX_24)
+            return {-12, "_ERROR__"};  // positive overflow
+        if (value < MIN_24)
+            return {-13, "_ERROR__"};  // negative overflow
+    }
 
     unsigned int v = value & 0xFFFFFF;
 
@@ -215,7 +228,7 @@ pair<int, string> convert_value(string operand)
             ss.str(last6);
         }
         else
-            return {-8, "_ERROR"};
+            return {-8, "_ERROR__"};
     }
 
     return {0, ss.str()};
@@ -230,6 +243,11 @@ pair<int, string> convert_offset(string operand, string l)
         long x = stol(s, nullptr, 16);
         long y = stol(l, nullptr, 16);
         long diff = x - y - 1;
+
+        if (diff > MAX_24)
+            return {-12, "_ERROR__"};  // positive overflow
+        if (diff < MIN_24)
+            return {-13, "_ERROR__"};  // negative overflow
 
         diff &= 0xFFFFFF;
 
@@ -377,6 +395,12 @@ void print_to_file(meta_data DATA, ofstream &out, int mode)
                 out << ">> WARNING : Unlabeled memory allocation data cannot be accessed via symbol\n";
             else
                 out << "\n";
+            break;
+        case -12:
+            out << ">> ERROR   : Positive overflow — operand exceeds 24-bit max (16777215 / 0xFFFFFF)\n";
+            break;
+        case -13:
+            out << ">> ERROR   : Negative overflow — operand exceeds 24-bit signed min (-8388608)\n";
             break;
         default:
             out << "\n";
@@ -584,7 +608,8 @@ int main(int c, char* args[])
             DATA[i].error = result.first;
             DATA[i].machine_code = result.second;
 
-            if (DATA[i].error != -4 && DATA[i].error >= -10 && DATA[i].error <= -1)
+            // count all errors including overflow
+            if (DATA[i].error != -4 && DATA[i].error >= -13 && DATA[i].error <= -1)
                 e_count++;
             i++;
         }

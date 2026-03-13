@@ -3,6 +3,9 @@ label:	; an unused label
 	ldc 0
 	ldc -5
 	ldc +5
+	ldc 0xFFFFFF
+	ldc 16777216
+	ldc 0xFFFFFFFFFF
 loop: br loop ; an infinite loop
 br next	;offset should be zero
 next:

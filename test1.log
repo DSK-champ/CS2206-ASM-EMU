@@ -1,0 +1,13 @@
+  00000000              label:	             >> WARNING : Empty Label
+  00000000   00000000   	ldc 0              
+  00000001   FFFFFB00   	ldc -5             
+  00000002   00000500   	ldc +5             
+  00000003   FFFFFF00   	ldc 0xFFFFFF       
+  00000004   _ERROR00   	ldc 16777216       >> ERROR   : Positive overflow — operand exceeds 24-bit max (16777215 / 0xFFFFFF)
+  00000005   _ERROR00   	ldc 0xFFFFFFFFFF   >> ERROR   : Positive overflow — operand exceeds 24-bit max (16777215 / 0xFFFFFF)
+  00000006   FFFFFF11   loop: br loop       
+  00000007   00000011   br next	            
+  00000008              next:               >> WARNING : Empty Label
+  00000008   00000600   	ldc loop           
+  00000009   00000A00   	ldc var1           
+  0000000A   00000000   var1: data 0        
