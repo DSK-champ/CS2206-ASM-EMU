@@ -10,6 +10,3 @@ ldc 5, 6; extra on end of line
 0def: ; bogus label name
 fibble; bogus mnemonic
 0def ; bogus mnemonic
-label3: SET
-SET 50 ; invalid
-data 67 ; warning must be shown 

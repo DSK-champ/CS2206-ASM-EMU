@@ -1,0 +1,6 @@
+datat must only get 6 bit because the last two bits although not showed it has a hex code of a pseudo instruction as shown in the sample emu.exe files shared
+to store a full 32 bit word you need to split it it someway because the data instruction can only accomdate 24 bits
+
+if there are duplicate labels first occurence is treated as valid
+
+set and data have special encodings FF and FE so that the emulator knows it shouldnt execute them

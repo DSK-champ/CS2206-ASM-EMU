@@ -15,9 +15,14 @@ uint32_t B  = 0;
 uint32_t PC = 0;
 uint32_t SP = 0;
 
-ofstream working_file;
-ofstream result_file;
-ofstream bfrafr_file;
+// ---- flags set by CLI arguments ----
+bool flag_trace  = false;   // -trace   → produce .trace   file (instruction trace)
+bool flag_bfrafr = false;   // -bfrafr  → produce .bfrafr  file (before/after registers)
+bool flag_memdump= false;   // -memdump → produce .memdump file (full memory dump)
+
+ofstream working_file;   // trace output    (.trace)
+ofstream result_file;    // memdump output  (.memdump)
+ofstream bfrafr_file;    // before&after    (.bfrafr)
 
 struct instruction
 {
@@ -53,10 +58,12 @@ static const instruction ins_type[] = {
     {nullptr,  0,   false, false, false}
 };
 
+// write to console + trace file (only if -trace was given)
 void write_to_files(const string &text)
 {
-    cout         << text;
-    working_file << text;
+    cout << text;
+    if (flag_trace && working_file.is_open())
+        working_file << text;
 }
 
 uint32_t get_word(uint32_t addr)
@@ -145,46 +152,64 @@ void setup_output_files(const string &input_name)
     if (dot_pos != string::npos)
         base_name = input_name.substr(0, dot_pos);
 
-    string working_name = base_name + ".working";
-    string result_name  = base_name + ".result";
-    string bfrafr_name  = base_name + ".bfrafr";
-
-    working_file.open(working_name.c_str());
-    if (!working_file)
+    // only open each file if its flag was given
+    if (flag_trace)
     {
-        cout << "Error: cannot open '" << working_name << "'\n";
-        exit(1);
+        string working_name = base_name + ".trace";
+        working_file.open(working_name.c_str());
+        if (!working_file)
+        {
+            cout << "Error: cannot open '" << working_name << "'\n";
+            exit(1);
+        }
+        cout << "Trace file     : " << working_name << "\n";
     }
 
-    result_file.open(result_name.c_str());
-    if (!result_file)
+    if (flag_memdump)
     {
-        cout << "Error: cannot open '" << result_name << "'\n";
-        exit(1);
+        string result_name = base_name + ".memdump";
+        result_file.open(result_name.c_str());
+        if (!result_file)
+        {
+            cout << "Error: cannot open '" << result_name << "'\n";
+            exit(1);
+        }
+        cout << "Memory dump    : " << result_name << "\n";
     }
 
-    bfrafr_file.open(bfrafr_name.c_str());
-    if (!bfrafr_file)
+    if (flag_bfrafr)
     {
-        cout << "Error: cannot open '" << bfrafr_name << "'\n";
-        exit(1);
+        string bfrafr_name = base_name + ".bfrafr";
+        bfrafr_file.open(bfrafr_name.c_str());
+        if (!bfrafr_file)
+        {
+            cout << "Error: cannot open '" << bfrafr_name << "'\n";
+            exit(1);
+        }
+        cout << "Before/After   : " << bfrafr_name << "\n";
     }
+
+    cout << "\n";
 }
 
 void write_result()
 {
-    for (uint32_t addr = 0; addr < 10000; addr++)
+    if (flag_memdump && result_file.is_open())
     {
-        uint32_t val = 0;
-        memcpy(&val, &memory[addr * 4], 4);
-        result_file << right << hex << setw(8) << setfill('0') << addr
-                    << "  "
-                    << right << hex << setw(8) << setfill('0') << val
-                    << "\n";
+        for (uint32_t addr = 0; addr < 10000; addr++)
+        {
+            uint32_t val = 0;
+            memcpy(&val, &memory[addr * 4], 4);
+            result_file << right << hex << setw(8) << setfill('0') << addr
+                        << "  "
+                        << right << hex << setw(8) << setfill('0') << val
+                        << "\n";
+        }
     }
-    working_file.close();
-    result_file.close();
-    bfrafr_file.close();
+
+    if (flag_trace  && working_file.is_open()) working_file.close();
+    if (flag_memdump && result_file.is_open()) result_file.close();
+    if (flag_bfrafr && bfrafr_file.is_open())  bfrafr_file.close();
 }
 
 string build_row(uint32_t count, uint32_t instr, const string &as_str,
@@ -225,6 +250,8 @@ string build_bfrafr_row(uint32_t bPC, uint32_t bA, uint32_t bB, uint32_t bSP,
 
 void print_bfrafr_header()
 {
+    if (!flag_bfrafr || !bfrafr_file.is_open()) return;
+
     ostringstream oss;
     oss << setfill(' ')
         << "       ------- before -------        "
@@ -259,115 +286,50 @@ void process_instr(uint32_t instr, uint32_t instr_pc)
     uint32_t current_count = (opcode == 18 ? instr_count : ++instr_count);
     string   as_str        = get_decoded(instr);
 
-    // snapshot registers before execution
+    // snapshot registers BEFORE execution
     uint32_t bPC = instr_pc, bA = A, bB = B, bSP = SP;
 
     write_to_files(build_row(current_count, instr, as_str, instr_pc, A, B, SP));
 
     switch (opcode)
     {
-    case 0: // ldc
-        B = A;
-        A = (uint32_t)operand;
-        break;
-
-    case 1: // adc
-        A = (uint32_t)((int32_t)A + operand);
-        break;
-
-    case 2: // ldl
-        B = A;
-        A = get_word((uint32_t)((int32_t)SP + operand));
-        break;
-
-    case 3: // stl
-        set_word((uint32_t)((int32_t)SP + operand), A);
-        A = B;
-        break;
-
-    case 4: // ldnl
-        A = get_word((uint32_t)((int32_t)A + operand));
-        break;
-
-    case 5: // stnl
-        set_word((uint32_t)((int32_t)A + operand), B);
-        break;
-
-    case 6: // add
-        A = B + A;
-        break;
-
-    case 7: // sub
-        A = B - A;
-        break;
-
-    case 8: // shl
-        A = B << A;
-        break;
-
-    case 9: // shr
-        A = B >> A;
-        break;
-
-    case 10: // adj
-        SP = (uint32_t)((int32_t)SP + operand);
-        break;
-
-    case 11: // a2sp
-        SP = A;
-        A  = B;
-        break;
-
-    case 12: // sp2a
-        B = A;
-        A = SP;
-        break;
-
-    case 13: // call
-        B  = A;
-        A  = PC;
-        PC = (uint32_t)((int32_t)PC + operand);
-        break;
-
-    case 14: // return
-        PC = A;
-        A  = B;
-        break;
-
-    case 15: // brz
-        if (A == 0)
-            PC = (uint32_t)((int32_t)PC + operand);
-        break;
-
-    case 16: // brlz
-        if ((int32_t)A < 0)
-            PC = (uint32_t)((int32_t)PC + operand);
-        break;
-
-    case 17: // br
-        PC = (uint32_t)((int32_t)PC + operand);
-        break;
+    case 0:  B = A; A = (uint32_t)operand; break;                              // ldc
+    case 1:  A = (uint32_t)((int32_t)A + operand); break;                      // adc
+    case 2:  B = A; A = get_word((uint32_t)((int32_t)SP + operand)); break;    // ldl
+    case 3:  set_word((uint32_t)((int32_t)SP + operand), A); A = B; break;     // stl
+    case 4:  A = get_word((uint32_t)((int32_t)A + operand)); break;            // ldnl
+    case 5:  set_word((uint32_t)((int32_t)A + operand), B); break;             // stnl
+    case 6:  A = B + A; break;                                                 // add
+    case 7:  A = B - A; break;                                                 // sub
+    case 8:  A = B << A; break;                                                // shl
+    case 9:  A = B >> A; break;                                                // shr
+    case 10: SP = (uint32_t)((int32_t)SP + operand); break;                    // adj
+    case 11: SP = A; A = B; break;                                             // a2sp
+    case 12: B = A; A = SP; break;                                             // sp2a
+    case 13: B = A; A = PC; PC = (uint32_t)((int32_t)PC + operand); break;    // call
+    case 14: PC = A; A = B; break;                                             // return
+    case 15: if (A == 0)          PC = (uint32_t)((int32_t)PC + operand); break; // brz
+    case 16: if ((int32_t)A < 0)  PC = (uint32_t)((int32_t)PC + operand); break; // brlz
+    case 17: PC = (uint32_t)((int32_t)PC + operand); break;                    // br
+    case 255: A = (uint32_t)((int32_t)(instr) >> 8); break;                   // data
 
     case 18: // HALT
     {
-        string halt_msg = "\nHALT reached.\n";
-        write_to_files(halt_msg);
-        bfrafr_file << build_bfrafr_row(bPC, bA, bB, bSP, current_count, instr, as_str, PC, A, B, SP);
+        write_to_files("\nHALT reached.\n");
+        if (flag_bfrafr && bfrafr_file.is_open())
+            bfrafr_file << build_bfrafr_row(bPC, bA, bB, bSP, current_count, instr, as_str, PC, A, B, SP);
         write_result();
         exit(0);
-        break;
     }
-
-    case 255: // data
-        A = (uint32_t)((int32_t)(instr) >> 8);
-        break;
 
     default:
         cout << "Unknown opcode: " << hex << (int)opcode << "\n";
         exit(1);
     }
 
-    bfrafr_file << build_bfrafr_row(bPC, bA, bB, bSP, current_count, instr, as_str, PC, A, B, SP);
+    // write before/after row for every instruction (except HALT, handled above)
+    if (flag_bfrafr && bfrafr_file.is_open())
+        bfrafr_file << build_bfrafr_row(bPC, bA, bB, bSP, current_count, instr, as_str, PC, A, B, SP);
 }
 
 void print_table_header()
@@ -408,16 +370,56 @@ void start_execution()
     }
 }
 
+// ---- print usage instructions and exit ----
+void print_usage(const char *prog)
+{
+    cout << "Usage: " << prog << " <file.obj> [options]\n\n"
+         << "Options (at least one required):\n"
+         << "  -trace    Instruction trace log       → <file>.trace\n"
+         << "  -bfrafr   Register state before/after → <file>.bfrafr\n"
+         << "  -memdump  Full memory dump at HALT    → <file>.memdump\n\n"
+         << "Examples:\n"
+         << "  " << prog << " program.obj -trace\n"
+         << "  " << prog << " program.obj -memdump\n"
+         << "  " << prog << " program.obj -trace -bfrafr -memdump\n";
+}
+
 int main(int c, char *args[])
 {
-    if (c < 2)
+    // need at least: emulator <file.obj> <one flag>
+    if (c < 3)
     {
-        cout << "Usage: " << args[0] << " <filename>\n";
+        print_usage(args[0]);
         return 1;
     }
 
-    setup_output_files(args[1]);
-    load_program(args[1]);
+    string filename = args[1];
+
+    // parse all flags from argument 2 onwards
+    for (int i = 2; i < c; i++)
+    {
+        string arg = args[i];
+        if      (arg == "-trace")   flag_trace  = true;
+        else if (arg == "-bfrafr")  flag_bfrafr = true;
+        else if (arg == "-memdump") flag_memdump= true;
+        else
+        {
+            cout << "Error: unknown option '" << arg << "'\n\n";
+            print_usage(args[0]);
+            return 1;
+        }
+    }
+
+    // must have at least one flag turned on
+    if (!flag_trace && !flag_bfrafr && !flag_memdump)
+    {
+        cout << "Error: no output option specified.\n\n";
+        print_usage(args[0]);
+        return 1;
+    }
+
+    setup_output_files(filename);
+    load_program(filename.c_str());
     start_execution();
 
     return 0;
