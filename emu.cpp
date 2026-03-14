@@ -69,7 +69,7 @@ uint32_t get_word(uint32_t addr)
     uint32_t val = 0;
     memcpy(&val, &memory[addr * 4], 4);
 
-    if ((val & 0xFF) == 0xFF)
+    if (addr < s && (val & 0xFF) == 0xFF)
     {
         int32_t signed_val = (int32_t)val >> 8;
         return (uint32_t)signed_val;
@@ -134,7 +134,7 @@ void load_program(const char *filename)
         exit(1);
     }
 
-    SP = (uint32_t)(size / 4);
+    SP = 0x270f;
     s  = (uint32_t)(size / 4);
 }
 
