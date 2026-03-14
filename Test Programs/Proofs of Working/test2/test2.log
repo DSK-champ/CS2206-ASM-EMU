@@ -1,0 +1,10 @@
+  00000000              label:                   >> WARNING : Empty Label
+  00000000   _ERROR__   label:                   >> ERROR   : Label conflict duplicate found
+  00000001   _ERROR11   br nonesuch              >> ERROR   : Label not found / invalid operand
+  00000002   _ERROR00   ldc 08ge                 >> ERROR   : Label not found / invalid operand
+  00000003   _ERROR00   ldc                      >> ERROR   : Missing operand
+  00000004   _ERROR06   add 5                    >> ERROR   : Unexpected operand
+  00000005   _ERROR00   ldc 5, 6                 >> ERROR   : Unexpected operand
+  00000006   _ERROR__   0def:                    >> ERROR   : invalid label
+  00000007   _ERROR__   fibble                   >> ERROR   : invalid Mnemonic
+  00000008   _ERROR__   0def                     >> ERROR   : invalid Mnemonic

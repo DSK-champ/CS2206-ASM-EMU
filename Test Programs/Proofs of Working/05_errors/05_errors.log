@@ -1,0 +1,47 @@
+  00000000   _ERROR__   add: ldc 5               >> ERROR   : Label cannot be instruction name
+  00000001   00000A00   myLabel: ldc 10          
+  00000002   _ERROR__   myLabel: ldc 20          >> ERROR   : Label conflict duplicate found
+  00000003   _ERROR__   1badLabel: ldc 5         >> ERROR   : invalid label
+  00000004   _ERROR__   my-Label: ldc 5          >> ERROR   : invalid label
+  00000005              lonelyLabel:             >> WARNING : Empty Label
+  00000005   _ERROR__   foo 5                    >> ERROR   : invalid Mnemonic
+  00000006   _ERROR__   subz                     >> ERROR   : invalid Mnemonic
+  00000007   _ERROR__   mov A B                  >> ERROR   : invalid Mnemonic
+  00000008   _ERROR06   add 5                    >> ERROR   : Unexpected operand
+  00000009   _ERROR07   sub 10                   >> ERROR   : Unexpected operand
+  0000000A   _ERROR12   HALT 99                  >> ERROR   : Unexpected operand
+  0000000B   _ERROR0E   return 3                 >> ERROR   : Unexpected operand
+  0000000C   _ERROR0B   a2sp 1                   >> ERROR   : Unexpected operand
+  0000000D   _ERROR0C   sp2a 7                   >> ERROR   : Unexpected operand
+  0000000E   _ERROR00   ldc 5 10                 >> ERROR   : Unexpected operand
+  0000000F   _ERROR01   adc 3 7                  >> ERROR   : Unexpected operand
+  00000010   _ERROR11   br myLabel extraStuff    >> ERROR   : Unexpected operand
+  00000011   _ERROR00   ldc ghostLabel           >> ERROR   : Label not found / invalid operand
+  00000012   _ERROR11   br neverDefined          >> ERROR   : Label not found / invalid operand
+  00000013   _ERROR02   ldl @@@                  >> ERROR   : Label not found / invalid operand
+  00000014   _ERROR00   ldc                      >> ERROR   : Missing operand
+  00000015   _ERROR01   adc                      >> ERROR   : Missing operand
+  00000016   _ERROR02   ldl                      >> ERROR   : Missing operand
+  00000017   _ERROR03   stl                      >> ERROR   : Missing operand
+  00000018   _ERROR04   ldnl                     >> ERROR   : Missing operand
+  00000019   _ERROR05   stnl                     >> ERROR   : Missing operand
+  0000001A   _ERROR0A   adj                      >> ERROR   : Missing operand
+  0000001B   _ERROR11   br                       >> ERROR   : Missing operand
+  0000001C   _ERROR0F   brz                      >> ERROR   : Missing operand
+  0000001D   _ERROR10   brlz                     >> ERROR   : Missing operand
+  0000001E   _ERROR__   SET 42                   >> ERROR   : Specify the label to SET value to
+  0000001F   0000DEAD   data 0xDEAD              >> WARNING : Unlabeled memory allocation data cannot be accessed via symbol
+  00000020   _ERROR00   ldc 16777216             >> ERROR   : Positive overflow — operand exceeds 24-bit max (16777215 / 0xFFFFFF)
+  00000021   _ERROR00   ldc 99999999             >> ERROR   : Positive overflow — operand exceeds 24-bit max (16777215 / 0xFFFFFF)
+  00000022   _ERROR00   ldc 0x1000000            >> ERROR   : Positive overflow — operand exceeds 24-bit max (16777215 / 0xFFFFFF)
+  00000023   _ERROR00   ldc -8388609             >> ERROR   : Negative overflow — operand exceeds 24-bit signed min (-8388608)
+  00000024   _ERROR00   ldc -9999999             >> ERROR   : Negative overflow — operand exceeds 24-bit signed min (-8388608)
+  00000025   _ERROR0A   adj -8388609             >> ERROR   : Negative overflow — operand exceeds 24-bit signed min (-8388608)
+  00000026              goodLabel:               >> WARNING : Empty Label
+  00000026   00000000   ldc 0                    
+  00000027   00000101   adc 1                    
+  00000028   00000006   add                      
+  00000029   00000012   HALT                     
+  0000002A   000000FF   anotherLabel: SET 0xFF   
+  0000002B   0000CAFE   data 0xCAFE              >> WARNING : Unlabeled memory allocation data cannot be accessed via symbol
+  0000002C   00123456   namedData: data 0x123456 

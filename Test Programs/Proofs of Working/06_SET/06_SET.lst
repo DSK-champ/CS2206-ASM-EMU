@@ -1,0 +1,13 @@
+  00000000   00000064   MAX: SET 100        
+  00000001   0000000A   LIMIT: SET 0x0A     
+  00000002   00FFFFFB   NEG: SET -5         
+  00000003   000000FF   MASK: SET 0xFF      
+  00000004   00006400   ldc MAX             
+  00000005   00000A01   adc LIMIT           
+  00000006   FFFFFB01   adc NEG             
+  00000007   00000007   COUNT: SET 7        
+  00000008   00000700   ldc COUNT           
+  00000009   FFFFFF01   loop: adc -1        
+  0000000A   00000110   brlz done           
+  0000000B   FFFFFD11   br loop             
+  0000000C   00000012   done: HALT          

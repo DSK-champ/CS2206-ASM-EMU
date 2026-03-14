@@ -196,7 +196,7 @@ void write_result()
 {
     if (flag_memdump && result_file.is_open())
     {
-        for (uint32_t addr = 0; addr < 10000; addr++)
+        for (uint32_t addr = 0; addr < 1000000; addr++)
         {
             uint32_t val = 0;
             memcpy(&val, &memory[addr * 4], 4);
