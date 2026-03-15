@@ -1,7 +1,15 @@
-// Name : Darla Sravan Kumar
-// Roll : 2401CS45
-
-// All work presented here is independently developed by the author (Sravan)
+/* 
+    Name      : Darla Sravan Kumar
+    Roll      : 2401CS45
+    Course    : Computer Architecture CS2206
+    Project   : Two Pass Assembler & Emulator for SIMPLEX Instruction Set
+    File Name : asm.cpp -- assembler
+    Language  : C++
+    Compile   : g++ asm.cpp -o asm
+    Useage    : ./asm <filename>.asm
+    
+    All work presented here is independently developed by the author (Sravan)
+*/
 
 #include <iostream>
 #include <fstream>
