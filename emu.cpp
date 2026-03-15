@@ -347,7 +347,7 @@ void process_instr(uint32_t instr, uint32_t instr_pc)
     case 16: if ((int32_t)A < 0)  PC = (uint32_t)((int32_t)PC + operand);    break; // brlz 
     case 17: PC = (uint32_t)((int32_t)PC + operand);                         break; // br   
     case 255: A = (uint32_t)((int32_t)(instr) >> 8);                         break; // data 
-
+    case 254: break;
     case 18: // HALT
     {
         write_to_files("\nHALT reached.\n");
