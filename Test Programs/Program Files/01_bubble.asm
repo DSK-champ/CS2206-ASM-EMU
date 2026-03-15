@@ -41,7 +41,6 @@ inner:
         brz     nextOuter       ; j == i → advance outer
         brlz    nextOuter       ; j > i  → advance outer (guard)
 
-        ; ---- load arr[j], push as temp ----
         ldc     arr
         ldl     2               ; A = j
         add                     ; A = arr+j
@@ -50,25 +49,18 @@ inner:
         stl     0               ; temp = arr[j]
         ; frame now: SP+0=temp, SP+1=retaddr, SP+2=i, SP+3=j
 
-        ; ---- load arr[j+1] ----
         ldc     arr
         ldl     3               ; A = j  (j is at SP+3 now)
         adc     1               ; A = j+1
         add                     ; A = arr+j+1
         ldnl    0               ; A = arr[j+1]
 
-        ; ---- compare: arr[j+1] - arr[j] ----
         ldl     0               ; A = temp=arr[j],  B = arr[j+1]
         sub                     ; A = arr[j+1] - arr[j]  (= B - A)
         brlz    doSwap
         br      noSwap
 
-doSwap:
-        ; --- write arr[j+1] into arr[j] ---
-        ; Need: A = arr+j (address),  B = arr[j+1] (value)
-        ; Technique: compute address, store in a 2nd temp, load value, then ldl temp2
-        ;            ldl temp2 does: B=old_A(=value), A=temp2(=address) → perfect for stnl
-        ;
+doSwap: 
         adj     -1              ; push addr-temp slot  (SP+0)
         ; frame: SP+0=addr_temp, SP+1=arr[j](temp), SP+2=retaddr, SP+3=i, SP+4=j
 
@@ -82,10 +74,9 @@ doSwap:
         adc     1               ; A = j+1
         add                     ; A = arr+j+1
         ldnl    0               ; A = arr[j+1]  (value to write)
-        ldl     0               ; B = arr[j+1], A = arr+j  ← B=value, A=address ✓
-        stnl    0               ; mem[arr+j] = arr[j+1]  ✓
+        ldl     0               ; B = arr[j+1], A = arr+j  ← B=value, A=address 
+        stnl    0               ; mem[arr+j] = arr[j+1]  
 
-        ; --- write old arr[j] (= SP+1 after adj) into arr[j+1] ---
         ldc     arr
         ldl     4               ; A = j
         adc     1               ; A = j+1
