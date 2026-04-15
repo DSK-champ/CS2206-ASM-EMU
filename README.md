@@ -71,11 +71,11 @@ g++ emu.cpp -o emu
 - Stack pointer fixed at start
   
 ---
-## 🖥️ Logisim Implementation (SIMPLEX CPU)
+## Logisim Implementation (SIMPLEX CPU)
 
 The SIMPLEX architecture was also fully implemented in **Logisim**, replicating the datapath and control flow of the assembler + emulator design.
 
-### 🔧 Components Implemented
+### Components Implemented
 - Program Counter (PC) with increment and branch logic  
 - Stack Pointer (SP)  
 - Register file (A, B)  
@@ -86,7 +86,7 @@ The SIMPLEX architecture was also fully implemented in **Logisim**, replicating 
 
 ---
 
-### 🔀 MUX Control Design
+### MUX Control Design
 
 #### MUX A
 | Sel | Input |
@@ -114,7 +114,7 @@ The SIMPLEX architecture was also fully implemented in **Logisim**, replicating 
 
 ---
 
-### ⚙️ Key Highlights
+### Key Highlights
 - Accurate datapath simulation of instruction execution  
 - Correct branching using ALU-computed offsets  
 - Supports immediate, register, and memory-based operations  
@@ -122,7 +122,7 @@ The SIMPLEX architecture was also fully implemented in **Logisim**, replicating 
 
 ---
 
-### 📈 Outcome
+### Outcome
 This Logisim model validates the correctness of the assembler and emulator by providing a **hardware-level visualization** of execution.
 
 
