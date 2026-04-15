@@ -5,7 +5,7 @@
 
 ---
 
-## 🚀 Overview
+## Overview
 A complete implementation of a **two-pass assembler (`asm.cpp`)** and a **machine emulator (`emu.cpp`)** for the SIMPLEX architecture.
 
 - Converts `.asm` → `.obj`
@@ -14,7 +14,7 @@ A complete implementation of a **two-pass assembler (`asm.cpp`)** and a **machin
 
 ---
 
-## ⚙️ Build & Run
+## Build & Run
 
 ```bash
 g++ asm.cpp -o asm
@@ -24,7 +24,7 @@ g++ emu.cpp -o emu
 ./emu file.obj -trace -bfrafr -memdump
 ```
 
-📌 Outputs:
+ Outputs:
 - `.obj` → binary
 - `.lst` → listing
 - `.log` → errors (if any)
@@ -32,7 +32,7 @@ g++ emu.cpp -o emu
 
 ---
 
-## 🧠 Features
+## Features
 
 ### Assembler
 - Two-pass design (label resolution + encoding)
@@ -51,7 +51,7 @@ g++ emu.cpp -o emu
 
 ---
 
-## 🧪 Test Programs
+## Test Programs
 
 | File | Description |
 |------|------------|
@@ -64,14 +64,7 @@ g++ emu.cpp -o emu
 
 ---
 
-## 📊 Highlight
-
-- Recursive Pascal Triangle computation (row 10)  
-- ~47k instructions executed for 10 values  
-
----
-
-## ⚠️ Limitations
+## Limitations
 - 24-bit data constraint
 - No infinite loop detection
 - Logical shift only (`shr`)
@@ -79,13 +72,8 @@ g++ emu.cpp -o emu
 
 ---
 
-## 🎥 Demo
+## Demo
 https://youtu.be/VXjq0EIDQ50
-
----
-
-## 🔗 Repo
-https://github.com/DSK-champ/CS2206-ASM-EMU/
 
 ---
 
