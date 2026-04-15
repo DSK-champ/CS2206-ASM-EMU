@@ -128,7 +128,9 @@ The SIMPLEX architecture was also fully implemented in **Logisim**, replicating 
 ### Outcome
 This Logisim model validates the correctness of the assembler and emulator by providing a **hardware-level visualization** of execution.
 
-
+---
+## Report
+for a more detailed reoprt on this project please refer to the Report.pdf document where i have documented everything in detail
 ---
 
 ## Demo
