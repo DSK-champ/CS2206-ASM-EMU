@@ -1,7 +1,7 @@
 # CS2206 — Assembler & Emulator
 
 **Author:** Darla Sravan Kumar  
-**Roll:** 2401CS45  
+**Roll  :** 2401CS45  
 
 ---
 
