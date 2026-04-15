@@ -85,6 +85,9 @@ The SIMPLEX architecture was also fully implemented in **Logisim**, replicating 
 - Sign-extension unit (24 → 32 bits)
 
 ---
+<img width="2879" height="1611" alt="image" src="https://github.com/user-attachments/assets/590722bb-1f6d-4999-9691-7ce03549b115" />
+
+---
 
 ### MUX Control Design
 
